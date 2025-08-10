@@ -1,50 +1,35 @@
-import { getChainByChainId } from './lib/chains';
-import { fetchFraxPools, fetchGauges, fetchPools, fetchSubgraph } from './lib/crv.fetcher';
-import { isCurveStrategy, computeCurveLikeForwardAPY } from './lib/crv-like.forward';
-import { GqlVault, GqlStrategy } from './kongTypes';
+import { KongWebhook, Output, OutputSchema } from './types/types';
+import { computeVaultFapy } from './fapy';
 
-export interface VaultAPY {
-  type?: string;
-  netAPR?: number;
-  netAPY?: number;
-  boost?: number;
-  poolAPY?: number;
-  boostedAPR?: number;
-  baseAPR?: number;
-  cvxAPR?: number;
-  rewardsAPR?: number;
-  keepCRV?: number;
-  v3OracleCurrentAPR?: number;
-  v3OracleStratRatioAPR?: number;
-}
+const COMPONENTS = [
+  'netAPR',
+  'netAPY',
+  'forwardBoost',
+  'poolAPY',
+  'boostedAPR',
+  'baseAPR',
+  'rewardsAPR',
+  'rewardsAPY',
+  'cvxAPR',
+  'keepCRV',
+] as const;
 
-export async function computeChainAPY(
-  vault: GqlVault,
-  chainId: number,
-  strategies: GqlStrategy[],
-): Promise<VaultAPY | null> {
-  const chain = getChainByChainId(chainId)?.name?.toLowerCase();
+export async function computeFapy(hook: KongWebhook): Promise<Output[] | null> {
+  const res = await computeVaultFapy(hook.chainId, hook.address);
 
-  if (!chain) return null;
-
-  const [gauges, pools, subgraph, fraxPools] = await Promise.all([
-    fetchGauges(chain),
-    fetchPools(chain),
-    fetchSubgraph(chainId),
-    fetchFraxPools(),
-  ]);
-
-  if (isCurveStrategy(vault)) {
-    return await computeCurveLikeForwardAPY({
-      vault,
-      gauges,
-      pools,
-      subgraphData: subgraph,
-      fraxPools,
-      allStrategiesForVault: strategies,
-      chainId,
-    });
+  if (res) {
+    const outputs: Output[] = COMPONENTS.map((component) =>
+      OutputSchema.parse({
+        chainId: hook.chainId,
+        address: hook.address,
+        label: 'fapy',
+        component,
+        value: res[component as keyof typeof res] ?? 0,
+        blockNumber: hook.blockNumber,
+        blockTime: hook.blockTime,
+      }),
+    );
+    return OutputSchema.array().parse(outputs);
   }
-
   return null;
 }

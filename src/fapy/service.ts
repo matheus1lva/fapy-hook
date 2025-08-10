@@ -1,5 +1,5 @@
-import { KongClient } from './kongClient';
-import { StrategyWithIndicators } from './types';
+import { KongClient } from '../clients/kongClient';
+import { GqlStrategy } from '../types/kongTypes';
 
 export async function getVaultWithStrategies(chainId: number, vaultAddress: `0x${string}`) {
   const kong = new KongClient();
@@ -40,7 +40,7 @@ export async function getVaultWithStrategies(chainId: number, vaultAddress: `0x$
         localKeepCRV: BigInt(strategy.localKeepCRV ?? 0),
         apiVersion: strategy.apiVersion,
         address: (strategy.address ?? vaultAddress) as `0x${string}`,
-      } as unknown as StrategyWithIndicators;
+      } as unknown as GqlStrategy;
     });
 
   if (!strategies && !vault) return null;

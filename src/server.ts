@@ -1,8 +1,8 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
-import { KongWebhookSchema, OutputSchema } from './types';
-import { computeFapyOutputs } from './fapy';
+import { KongWebhookSchema, OutputSchema } from './types/types';
+import { computeFapyOutputs } from '.';
 
 const app = express();
 app.use(express.json());

@@ -141,27 +141,26 @@ export async function getCVXPoolAPY(chainId, strategyAddress, baseAssetPrice) {
     catch { }
     return { crvAPR, cvxAPR, crvAPY, cvxAPY };
 }
-function getStrategyContractAbi(strategy) {
-    // not needed here, using convex ABI above where required
-    return [];
-}
 export async function determineCurveKeepCRV(strategy, chainId) {
-    // For Yearn-native Curve strategies, keepCRV can be defined as either a direct keepCRV value
-    // or as a percentage field (keepCRVPercentage) on the strategy/vault interface depending on API version.
-    // Try both in parallel and fallback to zero on failure.
+    const local = strategy.localKeepCRV;
+    if (local !== undefined && local !== null) {
+        return toNormalizedAmount(new BigNumberInt(local), 4);
+    }
     try {
         const client = createPublicClient({ transport: http(process.env[`RPC_FULL_NODE_${chainId}`]) });
-        const abi = convexBaseStrategyAbi; // most curve-like base strategies expose the fields below
-        const [keepCRVResult, keepCRVPercentageResult] = await Promise.allSettled([
+        const abi = convexBaseStrategyAbi;
+        const [localKeepCRVResult, keepCRVResult, keepCRVPercentageResult] = await Promise.allSettled([
+            client.readContract({ address: strategy.address, abi, functionName: 'localKeepCRV', args: [] }),
             client.readContract({ address: strategy.address, abi, functionName: 'keepCRV', args: [] }),
             client.readContract({ address: strategy.address, abi, functionName: 'keepCRVPercentage', args: [] }),
         ]);
         let raw = 0n;
-        if (keepCRVResult.status === 'fulfilled')
+        if (localKeepCRVResult.status === 'fulfilled')
+            raw = localKeepCRVResult.value;
+        else if (keepCRVResult.status === 'fulfilled')
             raw = keepCRVResult.value;
         else if (keepCRVPercentageResult.status === 'fulfilled')
             raw = keepCRVPercentageResult.value;
-        // Values are typically basis points (1e4 precision); normalize to fraction
         return toNormalizedAmount(new BigNumberInt(raw), 4);
     }
     catch {
@@ -180,7 +179,7 @@ export async function calculateCurveForwardAPY(data) {
     const oneMinusPerfFee = new Float().sub(new Float(1), performanceFee);
     let crvAPY = new Float().mul(data.baseAPY, yboost);
     crvAPY = new Float().add(crvAPY, data.rewardAPY);
-    const keepCRVRatio = new Float().add(new Float(1), new Float(Number(keepCrv)));
+    const keepCRVRatio = new Float().add(new Float(1), new Float(keepCrv ?? 0));
     let grossAPY = new Float().mul(data.baseAPY, yboost);
     grossAPY = new Float().mul(grossAPY, keepCRVRatio);
     grossAPY = new Float().add(grossAPY, data.rewardAPY);
@@ -261,7 +260,7 @@ export async function calculatePrismaForwardAPR(data) {
     if (receiver === zeroAddress)
         return null;
     const [base, [, prismaAPY]] = await Promise.all([
-        calculateConvexForwardAPY({ ...data, lastDebtRatio: new Float(data.strategy?.debtRatio || 0) }),
+        calculateConvexForwardAPY({ ...data, lastDebtRatio: new Float((data.strategy?.debtRatio || 0)) }),
         getPrismaAPY(chainId, receiver),
     ]);
     return {
@@ -310,7 +309,7 @@ export async function calculateCurveLikeStrategyAPR(vault, strategy, gauge, pool
             vault,
             chainId,
             gaugeAddress: gauge.gauge,
-            strategy,
+            strategy: strategy,
             baseAssetPrice,
             poolPrice,
             baseAPY,
@@ -320,7 +319,7 @@ export async function calculateCurveLikeStrategyAPR(vault, strategy, gauge, pool
     if (isFraxStrategy(strategy))
         return calculateFraxForwardAPY({
             gaugeAddress: gauge.gauge,
-            strategy,
+            strategy: strategy,
             baseAssetPrice,
             poolPrice,
             baseAPY,
@@ -332,7 +331,7 @@ export async function calculateCurveLikeStrategyAPR(vault, strategy, gauge, pool
     if (isConvexStrategy(strategy))
         return calculateConvexForwardAPY({
             gaugeAddress: gauge.gauge,
-            strategy,
+            strategy: strategy,
             baseAssetPrice,
             poolPrice,
             baseAPY,
@@ -343,7 +342,7 @@ export async function calculateCurveLikeStrategyAPR(vault, strategy, gauge, pool
         });
     return calculateCurveForwardAPY({
         gaugeAddress: gauge.gauge,
-        strategy,
+        strategy: strategy,
         baseAPY,
         rewardAPY,
         poolAPY: poolWeeklyAPY,

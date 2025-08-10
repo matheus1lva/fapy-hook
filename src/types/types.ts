@@ -41,3 +41,4 @@ export const OutputSchema = z.object({
   blockTime: z.bigint({ coerce: true }),
 });
 export type Output = z.infer<typeof OutputSchema>;
+

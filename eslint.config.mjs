@@ -23,10 +23,6 @@ export default [
       prettier: prettierPlugin,
     },
     rules: {
-      // Let Prettier handle formatting
-      'prettier/prettier': 'error',
-
-      // Common TS preferences
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',

@@ -1,6 +1,6 @@
-import type { StrategyWithIndicators, Thing } from '../types';
+
 import { zeroAddress, createPublicClient, http } from 'viem';
-import { fetchErc20PriceUsd } from '../prices';
+import { fetchErc20PriceUsd } from '../utils/prices';
 import { convexBaseStrategyAbi } from '../abis/convex-base-strategy.abi';
 import { crvRewardsAbi } from '../abis/crv-rewards.abi';
 import { cvxBoosterAbi } from '../abis/cvx-booster.abi';
@@ -24,9 +24,10 @@ import { FraxPool } from '../types/frax-pools';
 import { Float } from '../helpers/bignumber-float';
 import { BigNumberInt, toNormalizedAmount } from '../helpers/bignumber-int';
 import { CVXPoolInfo } from '../types/cvx';
-import { GqlStrategy, GqlVault } from '../kongTypes';
+import { GqlStrategy, GqlVault } from '../types/kongTypes';
+import { VaultAPY } from './fapy';
 
-export function isCurveStrategy(vault: GqlVault) {
+export function isCurveStrategy(vault: { name?: string | null }) {
   const vaultName = (vault?.name || '').toLowerCase();
   return (
     (vaultName.includes('curve') || vaultName.includes('convex') || vaultName.includes('crv')) &&
@@ -34,18 +35,19 @@ export function isCurveStrategy(vault: GqlVault) {
   );
 }
 
-export function isConvexStrategy(strategy: GqlStrategy) {
+export function isConvexStrategy(strategy: { name?: string | null }) {
   const strategyName = strategy.name?.toLowerCase();
   return strategyName?.includes('convex') && !strategyName?.includes('curve');
 }
-export function isFraxStrategy(strategy: GqlStrategy) {
+export function isFraxStrategy(strategy: { name?: string | null }) {
   return strategy?.name?.toLowerCase().includes('frax');
 }
-export function isPrismaStrategy(strategy: GqlStrategy) {
+export function isPrismaStrategy(strategy: { name?: string | null }) {
   return strategy?.name?.toLowerCase().includes('prisma');
 }
 
-export function findGaugeForVault(assetAddress: string, gauges: Gauge[]) {
+export function findGaugeForVault(assetAddress: string | undefined, gauges: Gauge[]) {
+  if (!assetAddress) return null;
   return gauges.find(
     (gauge) =>
       gauge.swap_token?.toLowerCase() === assetAddress.toLowerCase() ||
@@ -180,39 +182,36 @@ export async function getCVXPoolAPY(
   } catch { }
   return { crvAPR, cvxAPR, crvAPY, cvxAPY };
 }
+export async function determineCurveKeepCRV(strategy: GqlStrategy, chainId: number) {
+  const local = (strategy as any).localKeepCRV;
+  if (local !== undefined && local !== null) {
+    return toNormalizedAmount(new BigNumberInt(local as any), 4) as any;
+  }
 
-function getStrategyContractAbi(strategy: StrategyWithIndicators) {
-  // not needed here, using convex ABI above where required
-  return [] as any;
-}
-
-export async function determineCurveKeepCRV(strategy: StrategyWithIndicators, chainId: number) {
-  // For Yearn-native Curve strategies, keepCRV can be defined as either a direct keepCRV value
-  // or as a percentage field (keepCRVPercentage) on the strategy/vault interface depending on API version.
-  // Try both in parallel and fallback to zero on failure.
   try {
     const client = createPublicClient({ transport: http(process.env[`RPC_FULL_NODE_${chainId}`]!) });
-    const abi = convexBaseStrategyAbi as any; // most curve-like base strategies expose the fields below
+    const abi = convexBaseStrategyAbi as any;
 
-    const [keepCRVResult, keepCRVPercentageResult] = await Promise.allSettled([
+    const [localKeepCRVResult, keepCRVResult, keepCRVPercentageResult] = await Promise.allSettled([
+      client.readContract({ address: strategy.address, abi, functionName: 'localKeepCRV', args: [] }) as Promise<bigint>,
       client.readContract({ address: strategy.address, abi, functionName: 'keepCRV', args: [] }) as Promise<bigint>,
       client.readContract({ address: strategy.address, abi, functionName: 'keepCRVPercentage', args: [] }) as Promise<bigint>,
     ]);
 
     let raw: bigint = 0n;
-    if (keepCRVResult.status === 'fulfilled') raw = keepCRVResult.value;
+    if (localKeepCRVResult.status === 'fulfilled') raw = localKeepCRVResult.value;
+    else if (keepCRVResult.status === 'fulfilled') raw = keepCRVResult.value;
     else if (keepCRVPercentageResult.status === 'fulfilled') raw = keepCRVPercentageResult.value;
 
-    // Values are typically basis points (1e4 precision); normalize to fraction
-    return toNormalizedAmount(new BigNumberInt(raw), 4);
+    return toNormalizedAmount(new BigNumberInt(raw), 4) as any;
   } catch {
-    return new Float(0);
+    return new Float(0) as any;
   }
 }
 
 export async function calculateCurveForwardAPY(data: {
   gaugeAddress: `0x${string}`;
-  strategy: StrategyWithIndicators;
+  strategy: GqlStrategy;
   baseAPY: Float;
   rewardAPY: Float;
   poolAPY: Float;
@@ -238,7 +237,7 @@ export async function calculateCurveForwardAPY(data: {
   let crvAPY = new Float().mul(data.baseAPY, yboost);
   crvAPY = new Float().add(crvAPY, data.rewardAPY);
 
-  const keepCRVRatio = new Float().add(new Float(1), new Float(Number(keepCrv)));
+  const keepCRVRatio = new Float().add(new Float(1), new Float((keepCrv as any) ?? 0));
   let grossAPY = new Float().mul(data.baseAPY, yboost);
   grossAPY = new Float().mul(grossAPY, keepCRVRatio);
   grossAPY = new Float().add(grossAPY, data.rewardAPY);
@@ -261,7 +260,7 @@ export async function calculateCurveForwardAPY(data: {
 
 export async function calculateConvexForwardAPY(data: {
   gaugeAddress: `0x${string}`;
-  strategy: StrategyWithIndicators;
+  strategy: GqlStrategy;
   baseAssetPrice: Float;
   poolPrice: Float;
   baseAPY: Float;
@@ -348,7 +347,7 @@ export async function calculatePrismaForwardAPR(data: any) {
   })) as any;
   if (receiver === zeroAddress) return null;
   const [base, [, prismaAPY]] = await Promise.all([
-    calculateConvexForwardAPY({ ...data, lastDebtRatio: new Float(data.strategy?.debtRatio || 0) }),
+    calculateConvexForwardAPY({ ...data, lastDebtRatio: new Float((data.strategy?.debtRatio || 0) as any) }),
     getPrismaAPY(chainId, receiver),
   ]);
   return {
@@ -393,8 +392,8 @@ export async function calculateGaugeBaseAPR(
 }
 
 export async function calculateCurveLikeStrategyAPR(
-  vault: Thing & { name: string },
-  strategy: StrategyWithIndicators,
+  vault: GqlVault,
+  strategy: GqlStrategy,
   gauge: Gauge,
   pool: CrvPool | undefined,
   fraxPool: FraxPool | undefined,
@@ -411,23 +410,23 @@ export async function calculateCurveLikeStrategyAPR(
   const rewardAPY = getRewardsAPY(chainId, pool as any);
   const poolWeeklyAPY = getPoolWeeklyAPY(subgraphItem);
 
-  if (isPrismaStrategy(strategy))
+  if (isPrismaStrategy(strategy as any))
     return calculatePrismaForwardAPR({
       vault,
       chainId,
       gaugeAddress: gauge.gauge as any,
-      strategy,
+      strategy: strategy as any,
       baseAssetPrice,
       poolPrice,
       baseAPY,
       rewardAPY,
       poolWeeklyAPY,
     });
-  if (isFraxStrategy(strategy))
+  if (isFraxStrategy(strategy as any))
     return calculateFraxForwardAPY(
       {
         gaugeAddress: gauge.gauge as any,
-        strategy,
+        strategy: strategy as any,
         baseAssetPrice,
         poolPrice,
         baseAPY,
@@ -438,10 +437,10 @@ export async function calculateCurveLikeStrategyAPR(
       },
       fraxPool,
     );
-  if (isConvexStrategy(strategy))
+  if (isConvexStrategy(strategy as any))
     return calculateConvexForwardAPY({
       gaugeAddress: gauge.gauge as any,
-      strategy,
+      strategy: strategy as any,
       baseAssetPrice,
       poolPrice,
       baseAPY,
@@ -452,7 +451,7 @@ export async function calculateCurveLikeStrategyAPR(
     });
   return calculateCurveForwardAPY({
     gaugeAddress: gauge.gauge as any,
-    strategy,
+    strategy: strategy as any,
     baseAPY,
     rewardAPY,
     poolAPY: poolWeeklyAPY,
@@ -470,18 +469,18 @@ export async function computeCurveLikeForwardAPY({
   allStrategiesForVault,
   chainId,
 }: {
-  vault: Thing & { name: string };
+  vault: GqlVault;
   gauges: Gauge[];
   pools: CrvPool[];
   subgraphData: CrvSubgraphPool[];
   fraxPools: FraxPool[];
-  allStrategiesForVault: StrategyWithIndicators[];
+  allStrategiesForVault: GqlStrategy[];
   chainId: number;
-}) {
-  const gauge = findGaugeForVault(vault.defaults.asset, gauges);
-  if (!gauge) return { type: '', netAPY: 0, composite: {} } as any;
-  const pool = findPoolForVault(vault.defaults.asset, pools);
-  const fraxPool = findFraxPoolForVault(vault.defaults.asset, fraxPools);
+}): Promise<VaultAPY> {
+  const gauge = findGaugeForVault(vault.asset?.address ?? '', gauges);
+  if (!gauge) return { type: '', netAPY: 0 };
+  const pool = findPoolForVault(vault.asset?.address ?? '', pools);
+  const fraxPool = findFraxPoolForVault(vault.asset?.address ?? '', fraxPools);
   const subgraphItem = findSubgraphItemForVault(gauge.swap, subgraphData);
 
   let typeOf = '',

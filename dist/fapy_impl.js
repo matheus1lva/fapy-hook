@@ -14,11 +14,13 @@ export async function computeVaultFapy(chainId, vaultAddress) {
             return null;
         return {
             netAPR: fapy.netAPR,
+            netAPY: fapy.netAPY ?? fapy.netAPR,
             forwardBoost: fapy.boost,
             poolAPY: fapy.poolAPY,
             boostedAPR: fapy.boostedAPR,
             baseAPR: fapy.baseAPR,
-            rewardsAPR: fapy.rewardsAPY,
+            rewardsAPR: fapy.rewardsAPR ?? fapy.rewardsAPY,
+            rewardsAPY: fapy.rewardsAPY ?? fapy.rewardsAPR,
             cvxAPR: fapy.cvxAPR,
             keepCRV: fapy.keepCRV,
         };

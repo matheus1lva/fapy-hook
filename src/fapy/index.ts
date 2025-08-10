@@ -1,14 +1,15 @@
 import 'dotenv/config';
-import { computeChainAPY } from './index';
 import { getVaultWithStrategies } from './service';
+import { computeChainAPY } from './fapy';
 
 export type VaultFapy = {
   netAPR?: number;
+  netAPY?: number;
   forwardBoost?: number;
   poolAPY?: number;
   boostedAPR?: number;
   baseAPR?: number;
-  rewardsAPR?: number;
+  rewardsAPY?: number;
   cvxAPR?: number;
   keepCRV?: number;
 };
@@ -32,11 +33,12 @@ export async function computeVaultFapy(
 
     return {
       netAPR: fapy.netAPR,
+      netAPY: fapy.netAPY ?? fapy.netAPR,
       forwardBoost: fapy.boost,
       poolAPY: fapy.poolAPY,
       boostedAPR: fapy.boostedAPR,
       baseAPR: fapy.baseAPR,
-      rewardsAPR: fapy.rewardsAPY,
+      rewardsAPY: fapy.rewardsAPY,
       cvxAPR: fapy.cvxAPR,
       keepCRV: fapy.keepCRV,
     };

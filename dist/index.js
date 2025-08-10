@@ -13,7 +13,7 @@ export async function computeChainAPY(vault, chainId, strategies) {
     ]);
     if (isCurveStrategy(vault)) {
         return await computeCurveLikeForwardAPY({
-            vault,
+            vault: vault,
             gauges,
             pools,
             subgraphData: subgraph,

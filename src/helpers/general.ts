@@ -1,4 +1,4 @@
-import { Thing } from '../types';
+import { Thing } from '../types/types';
 
 export function isV3Vault(vault: Thing): boolean {
   const versionMajor = (vault as any).defaults?.apiVersion?.split?.('.')?.[0];

@@ -2,11 +2,13 @@ import { OutputSchema } from './types';
 import { computeVaultFapy } from './fapy_impl';
 const COMPONENTS = [
     'netAPR',
+    'netAPY',
     'forwardBoost',
     'poolAPY',
     'boostedAPR',
     'baseAPR',
     'rewardsAPR',
+    'rewardsAPY',
     'cvxAPR',
     'keepCRV',
 ];
