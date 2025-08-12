@@ -1,5 +1,5 @@
 import { erc20Abi } from '../abis/erc20.abi';
-import { fetchErc20PriceUsd } from '../prices';
+import { fetchErc20PriceUsd } from '../utils/prices';
 import { convertFloatAPRToAPY } from './calculation.helper';
 import { CVX_TOKEN_ADDRESS } from './maps.helper';
 import { convexBaseStrategyAbi } from '../abis/convex-base-strategy.abi';

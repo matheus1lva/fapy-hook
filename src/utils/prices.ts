@@ -1,4 +1,4 @@
-import { KongClient } from './clients/kongClient';
+import { KongClient } from '../clients/kongClient';
 
 export async function fetchErc20PriceUsd(
   chainId: number,

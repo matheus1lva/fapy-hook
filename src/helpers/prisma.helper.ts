@@ -1,5 +1,5 @@
 import { createPublicClient, http, zeroAddress } from 'viem';
-import { fetchErc20PriceUsd } from '../prices';
+import { fetchErc20PriceUsd } from '../utils/prices';
 import { yprismaReceiverAbi } from '../abis/yprisma-receiver.abi';
 
 export async function getPrismaAPY(
