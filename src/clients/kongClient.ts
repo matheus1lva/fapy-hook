@@ -45,6 +45,7 @@ export class KongClient {
           name
           performanceFee
           pricePerShare
+          expectedReturn
           rewards
           symbol
           token
@@ -57,7 +58,7 @@ export class KongClient {
         }
       }
     `;
-    const res = await graphqlRequest<{ vault: GqlVault | null }>({
+    const res = await graphqlRequest<{ vaults: GqlVault[] }>({
       url: this.url,
       headers: this.headers,
       query,
@@ -65,7 +66,8 @@ export class KongClient {
       throwOnError: false,
     });
     if ('errors' in res) return null;
-    return res.data.vault;
+    const first = res.data.vaults?.[0] ?? null;
+    return first;
   }
 
   /**
@@ -88,6 +90,12 @@ export class KongClient {
           localKeepCRV
           name
           performanceFee
+          // Required by service.ts
+          want
+          guardian
+          management
+          totalIdle
+          debtRatio
           rewards
           stakedBalance
           symbol

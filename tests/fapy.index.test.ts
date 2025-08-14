@@ -5,7 +5,8 @@ import * as fapyIndex from '../src/fapy/index'
 
 // Dependencies to mock
 import * as service from '../src/fapy/service'
-import * as fapyFlow from '../src/fapy/fapy'
+import * as strategyQueries from '../src/queries/strategy'
+import { computeChainAPY } from '../src/fapy/apy'
 
 // Shared helpers
 function hex(addr: string): `0x${string}` {
@@ -55,32 +56,32 @@ describe('computeVaultFapy', () => {
   })
 
   it('returns null when service returns null', async () => {
-    vi.spyOn(service, 'getVaultWithStrategies').mockResolvedValueOnce(null)
+    vi.spyOn(strategyQueries, 'getVaultStrategies').mockResolvedValueOnce(null)
 
-    const res = await fapyIndex.computeVaultFapy(chainId, vaultAddress)
+    const res = await fapyIndex.computeChainAPY(chainId, vaultAddress)
     expect(res).toBeNull()
   })
 
   it('returns null when no vault returned', async () => {
-    vi.spyOn(service, 'getVaultWithStrategies').mockResolvedValueOnce({ vault: null, strategies: [] } as any)
+    vi.spyOn(strategyQueries, 'getVaultStrategies').mockResolvedValueOnce({ vault: null, strategies: [] } as any)
 
-    const res = await fapyIndex.computeVaultFapy(chainId, vaultAddress)
+    const res = await fapyIndex.computeChainAPY(chainId, vaultAddress)
     expect(res).toBeNull()
   })
 
   it('returns null when computeChainAPY returns null', async () => {
-    vi.spyOn(service, 'getVaultWithStrategies').mockResolvedValueOnce({ vault: baseVault, strategies: [baseStrategy] } as any)
-    vi.spyOn(fapyFlow, 'computeChainAPY').mockResolvedValueOnce(null)
+    vi.spyOn(strategyQueries, 'getVaultStrategies').mockResolvedValueOnce({ vault: baseVault, strategies: [baseStrategy] } as any)
+    vi.spyOn(fapyIndex, 'computeChainAPY').mockResolvedValueOnce(null)
 
-    const res = await fapyIndex.computeVaultFapy(chainId, vaultAddress)
+    const res = await fapyIndex.computeChainAPY(chainId, vaultAddress)
     expect(res).toBeNull()
   })
 
   it('maps computeChainAPY fields to VaultFapy correctly (with netAPY present)', async () => {
-    vi.spyOn(service, 'getVaultWithStrategies').mockResolvedValueOnce({ vault: baseVault, strategies: [baseStrategy] } as any)
-    vi.spyOn(fapyFlow, 'computeChainAPY').mockResolvedValueOnce({ ...baseFapy })
+    vi.spyOn(strategyQueries, 'getVaultStrategies').mockResolvedValueOnce({ vault: baseVault, strategies: [baseStrategy] } as any)
+    vi.spyOn(fapyIndex, 'computeChainAPY').mockResolvedValueOnce({ ...baseFapy })
 
-    const res = await fapyIndex.computeVaultFapy(chainId, vaultAddress)
+    const res = await fapyIndex.computeChainAPY(chainId, vaultAddress)
     expect(res).toEqual({
       netAPR: baseFapy.netAPR,
       netAPY: baseFapy.netAPY,
@@ -95,17 +96,17 @@ describe('computeVaultFapy', () => {
   })
 
   it('falls back to netAPR when netAPY is undefined', async () => {
-    vi.spyOn(service, 'getVaultWithStrategies').mockResolvedValueOnce({ vault: baseVault, strategies: [baseStrategy] } as any)
-    vi.spyOn(fapyFlow, 'computeChainAPY').mockResolvedValueOnce({ ...baseFapy, netAPY: undefined })
+    vi.spyOn(strategyQueries, 'getVaultStrategies').mockResolvedValueOnce({ vault: baseVault, strategies: [baseStrategy] } as any)
+    vi.spyOn(fapyIndex, 'computeChainAPY').mockResolvedValueOnce({ ...baseFapy, netAPY: undefined })
 
-    const res = await fapyIndex.computeVaultFapy(chainId, vaultAddress)
+    const res = await fapyIndex.computeChainAPY(chainId, vaultAddress)
     expect(res?.netAPY).toBe(baseFapy.netAPR)
   })
 
   it('propagates thrown errors as null', async () => {
-    vi.spyOn(service, 'getVaultWithStrategies').mockRejectedValueOnce(new Error('network'))
+    vi.spyOn(strategyQueries, 'getVaultStrategies').mockRejectedValueOnce(new Error('network'))
 
-    const res = await fapyIndex.computeVaultFapy(chainId, vaultAddress)
+    const res = await fapyIndex.computeChainAPY(chainId, vaultAddress)
     expect(res).toBeNull()
   })
 })
