@@ -1,8 +1,8 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
-import { KongWebhookSchema, OutputSchema } from './types/types';
-import { computeFapy } from '.';
+import { KongWebhookSchema, OutputSchema } from '../src/types/types';
+import { computeFapy } from '../src/index';
 
 const app = express();
 app.use(express.json());
@@ -17,6 +17,7 @@ app.post('/webhook/fapy', async (req: Request, res: Response) => {
     // Compute outputs (placeholder zeros for now)
     const outputs = await computeFapy(hook);
 
+    console.log('outputs', outputs);
     // BigInt-safe JSON stringify
     const replacer = (_: string, v: unknown) => (typeof v === 'bigint' ? v.toString() : v);
 
@@ -31,7 +32,13 @@ app.post('/webhook/fapy', async (req: Request, res: Response) => {
   }
 });
 
-const port = Number(process.env.PORT || 3030);
-app.listen(port, () => {
-  console.log(`fapy-hook listening on http://localhost:${port}`);
-});
+// Export for Vercel
+export default app;
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  const port = Number(process.env.PORT || 3030);
+  app.listen(port, () => {
+    console.log(`fapy-hook listening on http://localhost:${port}`);
+  });
+}

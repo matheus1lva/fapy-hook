@@ -26,6 +26,7 @@ import { BigNumberInt, toNormalizedAmount } from '../helpers/bignumber-int';
 import { CVXPoolInfo } from '../types/cvx';
 import { GqlStrategy, GqlVault } from '../types/kongTypes';
 import { VaultAPY } from './fapy';
+import { getChainFromChainId } from '../utils/rpcs';
 
 export function isCurveStrategy(vault: { name?: string | null }) {
   const vaultName = (vault?.name || '').toLowerCase();
@@ -95,7 +96,10 @@ export async function getCVXPoolAPY(
   strategyAddress: `0x${string}`,
   baseAssetPrice: Float,
 ) {
-  const client = createPublicClient({ transport: http(process.env[`RPC_FULL_NODE_${chainId}`]!) });
+  const client = createPublicClient({
+    chain: getChainFromChainId(chainId),
+    transport: http(process.env[`RPC_CHAIN_URL_${chainId}`]!),
+  });
   let crvAPR = new Float(0),
     cvxAPR = new Float(0),
     crvAPY = new Float(0),
@@ -189,7 +193,10 @@ export async function determineCurveKeepCRV(strategy: GqlStrategy, chainId: numb
   }
 
   try {
-    const client = createPublicClient({ transport: http(process.env[`RPC_FULL_NODE_${chainId}`]!) });
+    const client = createPublicClient({
+      chain: getChainFromChainId(chainId),
+      transport: http(process.env[`RPC_CHAIN_URL_${chainId}`]!),
+    });
     const abi = convexBaseStrategyAbi as any;
 
     const [localKeepCRVResult, keepCRVResult, keepCRVPercentageResult] = await Promise.allSettled([
@@ -338,7 +345,10 @@ export async function calculateFraxForwardAPY(data: any, fraxPool: any) {
 
 export async function calculatePrismaForwardAPR(data: any) {
   const { vault, chainId } = data;
-  const client = createPublicClient({ transport: http(process.env[`RPC_FULL_NODE_${chainId}`]!) });
+  const client = createPublicClient({
+    chain: getChainFromChainId(chainId),
+    transport: http(process.env[`RPC_CHAIN_URL_${chainId}`]!),
+  });
   const [receiver] = (await client.readContract({
     address: vault.address,
     abi: yprismaAbi as any,

@@ -1,14 +1,17 @@
-import { erc20Abi } from 'viem'
+import { createPublicClient, erc20Abi, http } from 'viem'
 import { fetchErc20PriceUsd } from '../../utils/prices'
 import { convertFloatAPRToAPY } from './calculation.helper'
 import { CVX_TOKEN_ADDRESS } from './maps.helper'
 import { convexBaseStrategyAbi, cvxBoosterAbi, crvRewardsAbi } from '../abis'
-import { rpcs } from '../../utils/rpcs'
 import { Float } from './bignumber-float'
 import { toNormalizedAmount, BigNumberInt } from './bignumber-int'
+import { getChainFromChainId } from '../../utils/rpcs'
 
 export const getCVXForCRV = async (chainID: number, crvEarned: bigint) => {
-  const client = rpcs.next(chainID)
+  const client = createPublicClient({
+    chain: getChainFromChainId(chainID),
+    transport: http(process.env[`RPC_CHAIN_URL_${chainID}`]!),
+  });
 
   // Constants from Go code
   const cliffSize = new Float(0).setString('100000000000000000000000')    // 1e23
@@ -60,7 +63,10 @@ export const getConvexRewardAPY = async (
   baseAssetPrice: Float,
   poolPrice: Float
 ): Promise<{ totalRewardsAPR: Float; totalRewardsAPY: Float }> => {
-  const client = rpcs.next(chainID)
+  const client = createPublicClient({
+    chain: getChainFromChainId(chainID),
+    transport: http(process.env[`RPC_CHAIN_URL_${chainID}`]!),
+  });
 
   // Get reward PID from strategy
   let rewardPID: bigint
@@ -187,7 +193,7 @@ export const getConvexRewardAPY = async (
   }
 
   const [totalRewardsAPRFloat64] = totalRewardsAPR.toFloat64()
-  const totalRewardsAPY = new Float(convertFloatAPRToAPY(totalRewardsAPRFloat64, 365/15))
+  const totalRewardsAPY = new Float(convertFloatAPRToAPY(totalRewardsAPRFloat64, 365 / 15))
 
   return {
     totalRewardsAPR: totalRewardsAPR,

@@ -3,20 +3,20 @@ import { CrvSubgraphPool } from '../types/crv-subgraph';
 import { FraxPool } from '../types/frax-pools';
 import { CURVE_SUBGRAPHDATA_URI } from '../helpers/maps.helper';
 
-export async function fetchGauges(chain: string) {
+export async function fetchGauges() {
   const gaugesResponse = await fetch(
-    `${process.env.CRV_GAUGE_REGISTRY_URL || 'https://api.curve.fi/api/getAllGauges'}?blockchainId=${chain}`,
+    `${process.env.CRV_GAUGE_REGISTRY_URL || 'https://api.curve.finance/api/getAllGauges'}`,
   );
-  const gauges = await gaugesResponse.json();
+  const gauges = (await gaugesResponse.json()) as any;
   return Object.values(gauges.data) as any[];
 }
 
-export async function fetchPools(chain: string) {
+export async function fetchPools() {
   try {
     const poolsResponse = await fetch(
-      `${process.env.CRV_POOLS_URL || 'https://api.curve.fi/api/getPools/all'}/${chain}`,
+      `${process.env.CRV_POOLS_URL || 'https://api.curve.finance/api/getPools/all'}`,
     );
-    const pools = await poolsResponse.json();
+    const pools = (await poolsResponse.json()) as any;
     return pools.data?.poolData as CrvPool[];
   } catch {
     return [];
@@ -26,7 +26,7 @@ export async function fetchPools(chain: string) {
 export async function fetchSubgraph(chainId: number) {
   try {
     const subgraphResponse = await fetch(`${CURVE_SUBGRAPHDATA_URI[chainId]}`);
-    const subgraph = await subgraphResponse.json();
+    const subgraph = (await subgraphResponse.json()) as any;
     return subgraph.data.poolList as CrvSubgraphPool[];
   } catch {
     return [];
@@ -35,7 +35,7 @@ export async function fetchSubgraph(chainId: number) {
 
 export async function fetchFraxPools() {
   const res = await fetch('https://frax.convexfinance.com/api/frax/pools');
-  const json = await res.json();
+  const json = (await res.json()) as any;
   const pools = (json?.pools?.augmentedPoolData || []) as FraxPool[];
   return pools
     .filter((p) => p && p.type === 'convex')

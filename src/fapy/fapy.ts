@@ -28,8 +28,8 @@ export async function computeChainAPY(
   if (!chain) return null;
 
   const [gauges, pools, subgraph, fraxPools] = await Promise.all([
-    fetchGauges(chain),
-    fetchPools(chain),
+    fetchGauges(),
+    fetchPools(),
     fetchSubgraph(chainId),
     fetchFraxPools(),
   ]);

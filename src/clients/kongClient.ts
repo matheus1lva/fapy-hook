@@ -75,37 +75,67 @@ export class KongClient {
    */
   async getStrategy(chainId: number, address: `0x${string}`): Promise<GqlStrategy | null> {
     const query = gql`
-      query Strategy($chainId: Int, $address: String) {
-        strategy(chainId: $chainId, address: $address) {
-          MAX_FEE
-          MIN_FEE
-          baseFeeOracle
-          curveVoter
-          crv
-          decimals
-          gauge
-          inceptBlock
-          inceptTime
-          keeper
-          localKeepCRV
-          name
-          performanceFee
-          // Required by service.ts
-          want
-          guardian
-          management
-          totalIdle
-          debtRatio
-          rewards
-          stakedBalance
-          symbol
-          totalAssets
-          totalDebt
-          totalSupply
-          address
-          chainId
-        }
-      }
+query Vault($address: String, $chainId: Int) {
+  strategy(address: $address, chainId: $chainId) {
+    chainId
+    address
+    apiVersion
+    balanceOfWant
+    baseFeeOracle
+    creditThreshold
+    crv
+    curveVoter
+    delegatedAssets
+    doHealthCheck
+    emergencyExit
+    erc4626
+    estimatedTotalAssets
+    forceHarvestTriggerOnce
+    gauge
+    healthCheck
+    inceptTime
+    inceptBlock
+    isActive
+    isBaseFeeAcceptable
+    isOriginal
+    keeper
+    localKeepCRV
+    maxReportDelay
+    metadataURI
+    minReportDelay
+    name
+    proxy
+    rewards
+    stakedBalance
+    strategist
+    tradeFactory
+    vault
+    want
+    DOMAIN_SEPARATOR
+    FACTORY
+    MAX_FEE
+    MIN_FEE
+    decimals
+    fullProfitUnlockDate
+    isShutdown
+    lastReport
+    management
+    pendingManagement
+    performanceFee
+    performanceFeeRecipient
+    pricePerShare
+    profitMaxUnlockTime
+    profitUnlockingRate
+    symbol
+    totalAssets
+    totalDebt
+    totalIdle
+    totalSupply
+    totalDebtUsd
+    v3
+    yearn
+  }
+}
     `;
     const res = await graphqlRequest<{ strategy: GqlStrategy | null }>({
       url: this.url,

@@ -1,18 +1,22 @@
 import { convexBaseStrategyAbi } from '../abis/convex-base-strategy.abi'
 import { curveGaugeAbi } from '../abis/crv-gauge.abi'
 import { strategyBaseAbi } from '../abis/strategy-base.abi'
-import { rpcs } from '../../utils/rpcs'
-import { StrategyWithIndicators } from 'lib/types'
+import { getChainFromChainId } from '../../utils/rpcs'
+import { Strategy } from '../types/strategies'
 import { BigNumberInt, toNormalizedAmount } from './bignumber-int'
 import { BigNumber } from '@ethersproject/bignumber'
 import { Float } from './bignumber-float'
+import { createPublicClient, http } from 'viem'
 
 type Address = `0x${string}`
 
 export const getCurveBoost = async (chainID: number, voter: Address, gauge: Address) => {
-  const client = rpcs.next(chainID)
+  const client = createPublicClient({
+    chain: getChainFromChainId(chainID),
+    transport: http(process.env[`RPC_CHAIN_URL_${chainID}`]!),
+  });
 
-  const [{result: workingBalance}, {result: balanceOf}] = await client.multicall({
+  const [{ result: workingBalance }, { result: balanceOf }] = await client.multicall({
     contracts: [
       {
         address: gauge,
@@ -30,8 +34,8 @@ export const getCurveBoost = async (chainID: number, voter: Address, gauge: Addr
   })
 
 
-  if(balanceOf && BigNumber.from(balanceOf ?? '0').lte(BigNumber.from(0))) {
-    if(chainID === 1) {
+  if (balanceOf && BigNumber.from(balanceOf ?? '0').lte(BigNumber.from(0))) {
+    if (chainID === 1) {
       return new Float(2.5)
     }
     return new Float(1)
@@ -57,11 +61,14 @@ export const getCurveBoost = async (chainID: number, voter: Address, gauge: Addr
 }
 
 
-export const determineConvexKeepCRV = async (chainID: number, strategy: StrategyWithIndicators) => {
-  const client = rpcs.next(chainID)
+export const determineConvexKeepCRV = async (chainID: number, strategy: Strategy) => {
+  const client = createPublicClient({
+    chain: getChainFromChainId(chainID),
+    transport: http(process.env[`RPC_CHAIN_URL_${chainID}`]!),
+  });
   try {
     const uselLocalCRV = await client.readContract({
-      address: strategy.address,
+      address: strategy.address as `0x${string}`,
       abi: convexBaseStrategyAbi,
       functionName: 'uselLocalCRV',
     })
@@ -70,12 +77,12 @@ export const determineConvexKeepCRV = async (chainID: number, strategy: Strategy
       // Try to read both keepCVX and localKeepCRV in parallel
       const [cvxKeepCRVResult, localKeepCRVResult] = await Promise.allSettled([
         client.readContract({
-          address: strategy.address,
+          address: strategy.address as `0x${string}`,
           abi: convexBaseStrategyAbi,
           functionName: 'keepCVX',
         }),
         client.readContract({
-          address: strategy.address,
+          address: strategy.address as `0x${string}`,
           abi: convexBaseStrategyAbi,
           functionName: 'localKeepCRV',
         })
@@ -91,7 +98,7 @@ export const determineConvexKeepCRV = async (chainID: number, strategy: Strategy
     }
 
     const curveGlobal = await client.readContract({
-      address: strategy.address,
+      address: strategy.address as `0x${string}`,
       abi: convexBaseStrategyAbi,
       functionName: 'curveGlobal',
     }) as `0x${string}`

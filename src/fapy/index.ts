@@ -42,7 +42,8 @@ export async function computeVaultFapy(
       cvxAPR: fapy.cvxAPR,
       keepCRV: fapy.keepCRV,
     };
-  } catch {
+  } catch (error) {
+    console.log("error", error)
     return null;
   }
 }

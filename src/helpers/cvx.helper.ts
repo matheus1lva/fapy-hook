@@ -8,9 +8,13 @@ import { crvRewardsAbi } from '../abis/crv-rewards.abi';
 import { Float } from './bignumber-float';
 import { toNormalizedAmount, BigNumberInt } from './bignumber-int';
 import { createPublicClient, http } from 'viem';
+import { getChainFromChainId } from '../utils/rpcs';
 
 export const getCVXForCRV = async (chainID: number, crvEarned: bigint) => {
-  const client = createPublicClient({ transport: http(process.env[`RPC_FULL_NODE_${chainID}`]!) });
+  const client = createPublicClient({
+    chain: getChainFromChainId(chainID),
+    transport: http(process.env[`RPC_CHAIN_URL_${chainID}`]!),
+  });
 
   const cliffSize = new Float(0).setString('100000000000000000000000');
   const cliffCount = new Float(0).setString('1000');
@@ -53,7 +57,10 @@ export const getConvexRewardAPY = async (
   baseAssetPrice: Float,
   poolPrice: Float,
 ): Promise<{ totalRewardsAPR: Float; totalRewardsAPY: Float }> => {
-  const client = createPublicClient({ transport: http(process.env[`RPC_FULL_NODE_${chainID}`]!) });
+  const client = createPublicClient({
+    chain: getChainFromChainId(chainID),
+    transport: http(process.env[`RPC_CHAIN_URL_${chainID}`]!),
+  });
 
   let rewardPID: bigint;
   try {
@@ -173,7 +180,7 @@ export const getConvexRewardAPY = async (
 
         const rewardAPR = new Float(0).div(rewardAPRTop, rewardAPRBottom);
         totalRewardsAPR = new Float(0).add(totalRewardsAPR, rewardAPR);
-      } catch {}
+      } catch { }
     }
   }
 

@@ -4,13 +4,17 @@ import { strategyBaseAbi } from '../abis/strategy-base.abi';
 import { createPublicClient, http } from 'viem';
 import { Float } from './bignumber-float';
 import { BigNumberInt, toNormalizedAmount } from './bignumber-int';
+import { getChainFromChainId } from '../utils/rpcs';
 
 export const getCurveBoost = async (
   chainID: number,
   voter: `0x${string}`,
   gauge: `0x${string}`,
 ) => {
-  const client = createPublicClient({ transport: http(process.env[`RPC_FULL_NODE_${chainID}`]!) });
+  const client = createPublicClient({
+    chain: getChainFromChainId(chainID),
+    transport: http(process.env[`RPC_CHAIN_URL_${chainID}`]!),
+  });
 
   const [{ result: workingBalance }, { result: balanceOf }] = await (client as any).multicall({
     contracts: [
@@ -44,7 +48,10 @@ export const determineConvexKeepCRV = async (
   chainID: number,
   strategy: { address: `0x${string}` },
 ) => {
-  const client = createPublicClient({ transport: http(process.env[`RPC_FULL_NODE_${chainID}`]!) });
+  const client = createPublicClient({
+    chain: getChainFromChainId(chainID),
+    transport: http(process.env[`RPC_CHAIN_URL_${chainID}`]!),
+  });
   try {
     const uselLocalCRV = await client.readContract({
       address: strategy.address,

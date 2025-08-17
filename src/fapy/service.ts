@@ -4,16 +4,16 @@ import { GqlStrategy } from '../types/kongTypes';
 export async function getVaultWithStrategies(chainId: number, vaultAddress: `0x${string}`) {
   const kong = new KongClient();
   const vault = await kong.getVault(chainId, vaultAddress);
-  const strategies = (
-    await Promise.all(
-      (vault?.strategies || []).map((s) => kong.getStrategy(chainId, s as `0x${string}`)),
-    )
+
+  const allStrategies = await Promise.all(
+    (vault?.strategies || []).map((s) => kong.getStrategy(chainId, s as `0x${string}`)),
   )
+
+
+  const strategies = allStrategies
     .filter((s) => s !== null)
     .map((strategy) => {
       return {
-        ...strategy,
-        ...vault,
         name: strategy.name,
         token: strategy.want,
         symbol: strategy.symbol,
@@ -39,7 +39,8 @@ export async function getVaultWithStrategies(chainId: number, vaultAddress: `0x$
         maxAvailableShares: BigInt(vault?.maxAvailableShares ?? 0),
         localKeepCRV: BigInt(strategy.localKeepCRV ?? 0),
         apiVersion: strategy.apiVersion,
-        address: (strategy.address ?? vaultAddress) as `0x${string}`,
+        ...vault,
+        ...strategy,
       } as unknown as GqlStrategy;
     });
 
