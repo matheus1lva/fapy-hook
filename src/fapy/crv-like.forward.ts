@@ -17,13 +17,9 @@ import {
   getPrismaAPY,
   YEARN_VOTER_ADDRESS,
 } from '../helpers';
-import { Gauge } from '../types/gauges';
-import { CrvPool } from '../types/crv-pools';
-import { CrvSubgraphPool } from '../types/crv-subgraph';
-import { FraxPool } from '../types/frax-pools';
+import { Gauge, CrvPool, CrvSubgraphPool, FraxPool, CVXPoolInfo } from './types';
 import { Float } from '../helpers/bignumber-float';
 import { BigNumberInt, toNormalizedAmount } from '../helpers/bignumber-int';
-import { CVXPoolInfo } from '../types/cvx';
 import { GqlStrategy, GqlVault } from '../types/kongTypes';
 import { VaultAPY } from './fapy';
 import { getChainFromChainId } from '../utils/rpcs';

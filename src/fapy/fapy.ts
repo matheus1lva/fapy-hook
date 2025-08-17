@@ -1,4 +1,4 @@
-import { getChainByChainId } from '../utils/chains';
+import { getChainFromChainId } from '../utils/rpcs';
 import { fetchFraxPools, fetchGauges, fetchPools, fetchSubgraph } from './crv.fetcher';
 import { isCurveStrategy, computeCurveLikeForwardAPY } from './crv-like.forward';
 import { GqlStrategy, GqlVault } from '../types/kongTypes';
@@ -23,7 +23,7 @@ export async function computeChainAPY(
   chainId: number,
   strategies: Array<GqlStrategy>,
 ): Promise<VaultAPY | null> {
-  const chain = getChainByChainId(chainId)?.name?.toLowerCase();
+  const chain = getChainFromChainId(chainId)?.name?.toLowerCase();
 
   if (!chain) return null;
 

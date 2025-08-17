@@ -1,4 +1,4 @@
-import { KongWebhook, Output, OutputSchema } from './types/types';
+import { KongWebhook, Output, OutputSchema } from './types/schemas';
 import { computeVaultFapy } from './fapy';
 
 const COMPONENTS = [
