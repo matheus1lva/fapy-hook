@@ -27,6 +27,7 @@ import { CVXPoolInfo } from '../types/cvx';
 import { GqlStrategy, GqlVault } from '../types/kongTypes';
 import { VaultAPY } from './fapy';
 import { getChainFromChainId } from '../utils/rpcs';
+import { YEARN_VAULT_V022_ABI, YEARN_VAULT_V030_ABI, YEARN_VAULT_ABI_04 } from '../abis/0xAbis.abi';
 
 export function isCurveStrategy(vault: { name?: string | null }) {
   const vaultName = (vault?.name || '').toLowerCase();
@@ -49,11 +50,16 @@ export function isPrismaStrategy(strategy: { name?: string | null }) {
 
 export function findGaugeForVault(assetAddress: string | undefined, gauges: Gauge[]) {
   if (!assetAddress) return null;
-  return gauges.find(
-    (gauge) =>
-      gauge.swap_token?.toLowerCase() === assetAddress.toLowerCase() ||
-      gauge.swap?.toLowerCase() === assetAddress.toLowerCase(),
-  );
+  return gauges.find((gauge) => {
+    // Match Go logic: check SwapToken field first
+    if (gauge.swap_token?.toLowerCase() === assetAddress.toLowerCase()) {
+      return true;
+    }
+    if (gauge.swap?.toLowerCase() === assetAddress.toLowerCase()) {
+      return true;
+    }
+    return false;
+  });
 }
 export function findPoolForVault(assetAddress: string, pools: CrvPool[]) {
   return pools.find((pool) => pool.lpTokenAddress?.toLowerCase() === assetAddress.toLowerCase());
@@ -70,10 +76,12 @@ export function findSubgraphItemForVault(swapAddress: string, subgraphData: CrvS
 }
 
 export function getPoolWeeklyAPY(subgraphItem: CrvSubgraphPool | undefined) {
-  return new Float(0).div(new Float(subgraphItem?.latestWeeklyApy || 0), new Float(100));
+  const result = new Float(0);
+  return result.div(new Float(subgraphItem?.latestWeeklyApy || 0), new Float(100));
 }
 export function getPoolDailyAPY(subgraphItem: CrvSubgraphPool | undefined) {
-  return new Float(0).div(new Float(subgraphItem?.latestDailyApy || 0), new Float(100));
+  const result = new Float(0);
+  return result.div(new Float(subgraphItem?.latestDailyApy || 0), new Float(100));
 }
 export function getPoolPrice(gauge: Gauge): Float {
   const vp = gauge.swap_data?.virtual_price
@@ -109,7 +117,7 @@ export async function getCVXPoolAPY(
     try {
       rewardPID = await client.readContract({
         address: strategyAddress,
-        abi: convexBaseStrategyAbi as any,
+        abi: convexBaseStrategyAbi,
         functionName: 'PID',
         args: [],
       });
@@ -117,7 +125,7 @@ export async function getCVXPoolAPY(
       try {
         rewardPID = await client.readContract({
           address: strategyAddress,
-          abi: convexBaseStrategyAbi as any,
+          abi: convexBaseStrategyAbi,
           functionName: 'ID',
           args: [],
         });
@@ -125,7 +133,7 @@ export async function getCVXPoolAPY(
         try {
           rewardPID = await client.readContract({
             address: strategyAddress,
-            abi: convexBaseStrategyAbi as any,
+            abi: convexBaseStrategyAbi,
             functionName: 'fraxPid',
             args: [],
           });
@@ -136,30 +144,30 @@ export async function getCVXPoolAPY(
     }
     let poolInfo: CVXPoolInfo;
     try {
-      poolInfo = (await client.readContract({
+      poolInfo = await client.readContract({
         address: CVX_BOOSTER_ADDRESS[chainId],
-        abi: cvxBoosterAbi as any,
+        abi: cvxBoosterAbi,
         functionName: 'poolInfo',
         args: [rewardPID],
-      })) as any;
+      }) as CVXPoolInfo;
     } catch {
       return { crvAPR, cvxAPR, crvAPY, cvxAPY };
     }
 
     const [rateResult, totalSupply] = await Promise.all([
       client.readContract({
-        address: poolInfo.crvRewards as any,
-        abi: crvRewardsAbi as any,
+        address: poolInfo.crvRewards as `0x${string}`,
+        abi: crvRewardsAbi,
         functionName: 'rewardRate',
         args: [],
-      }) as Promise<bigint>,
+      }),
       client.readContract({
-        address: poolInfo.crvRewards as any,
-        abi: crvRewardsAbi as any,
+        address: poolInfo.crvRewards as `0x${string}`,
+        abi: crvRewardsAbi,
         functionName: 'totalSupply',
         args: [],
-      }) as Promise<bigint>,
-    ]);
+      }),
+    ]) as [bigint, bigint];
 
     const rate = toNormalizedAmount(new BigNumberInt(rateResult), 18);
     const supply = toNormalizedAmount(new BigNumberInt(totalSupply), 18);
@@ -178,42 +186,61 @@ export async function getCVXPoolAPY(
     crvAPR = new Float(0).mul(crvPerUnderlyingPerYear, new Float(crvPrice));
     cvxAPR = new Float(0).mul(cvxPerYear, new Float(cvxPrice));
 
-    const [crvAPRFloat64] = (crvAPR as any).toFloat64();
-    const [cvxAPRFloat64] = (cvxAPR as any).toFloat64();
+    const [crvAPRFloat64] = crvAPR.toFloat64();
+    const [cvxAPRFloat64] = cvxAPR.toFloat64();
 
     crvAPY = new Float().setFloat64(convertFloatAPRToAPY(crvAPRFloat64, 365 / 15));
     cvxAPY = new Float().setFloat64(convertFloatAPRToAPY(cvxAPRFloat64, 365 / 15));
   } catch { }
   return { crvAPR, cvxAPR, crvAPY, cvxAPY };
 }
-export async function determineCurveKeepCRV(strategy: GqlStrategy, chainId: number) {
-  const local = (strategy as any).localKeepCRV;
-  if (local !== undefined && local !== null) {
-    return toNormalizedAmount(new BigNumberInt(local as any), 4) as any;
+function getStrategyContractAbi(strategy: GqlStrategy) {
+  if (strategy.apiVersion === '0.2.2') {
+    return YEARN_VAULT_V022_ABI;
   }
+
+  if (strategy.apiVersion === '0.3.0' || strategy.apiVersion === '0.3.1') {
+    return YEARN_VAULT_V030_ABI;
+  }
+
+  return YEARN_VAULT_ABI_04;
+}
+
+export async function determineCurveKeepCRV(strategy: GqlStrategy, chainId: number) {
+  let keepPercentage = BigInt(0);
+  let keepCRV = BigInt(0);
 
   try {
     const client = createPublicClient({
       chain: getChainFromChainId(chainId),
       transport: http(process.env[`RPC_CHAIN_URL_${chainId}`]!),
     });
-    const abi = convexBaseStrategyAbi as any;
+    const abi = getStrategyContractAbi(strategy);
 
-    const [localKeepCRVResult, keepCRVResult, keepCRVPercentageResult] = await Promise.allSettled([
-      client.readContract({ address: strategy.address, abi, functionName: 'localKeepCRV', args: [] }) as Promise<bigint>,
-      client.readContract({ address: strategy.address, abi, functionName: 'keepCRV', args: [] }) as Promise<bigint>,
-      client.readContract({ address: strategy.address, abi, functionName: 'keepCRVPercentage', args: [] }) as Promise<bigint>,
+    // Run both contract reads in parallel (matching kong logic)
+    const [keepCRVResult, keepPercentageResult] = await Promise.all([
+      client.readContract({
+        address: strategy.address,
+        abi,
+        functionName: 'keepCRV',
+        args: []
+      }) as Promise<bigint>,
+      client.readContract({
+        address: strategy.address,
+        abi,
+        functionName: 'keepCRVPercentage',
+        args: []
+      }) as Promise<bigint>
     ]);
-
-    let raw: bigint = 0n;
-    if (localKeepCRVResult.status === 'fulfilled') raw = localKeepCRVResult.value;
-    else if (keepCRVResult.status === 'fulfilled') raw = keepCRVResult.value;
-    else if (keepCRVPercentageResult.status === 'fulfilled') raw = keepCRVPercentageResult.value;
-
-    return toNormalizedAmount(new BigNumberInt(raw), 4) as any;
-  } catch {
-    return new Float(0) as any;
+    keepCRV = keepCRVResult;
+    keepPercentage = keepPercentageResult;
+  } catch (error) {
+    return 0;
   }
+
+  // Add keepCRV and keepPercentage together (kong logic)
+  const keepValue = new BigNumberInt(keepCRV).add(new BigNumberInt(keepPercentage));
+  return toNormalizedAmount(keepValue, 4).toNumber();
 }
 
 export async function calculateCurveForwardAPY(data: {
@@ -232,7 +259,7 @@ export async function calculateCurveForwardAPY(data: {
   ]);
   const debtRatio = toNormalizedAmount(new BigNumberInt(data.lastDebtRatio.toNumber()), 4);
   const performanceFee = toNormalizedAmount(
-    new BigNumberInt((data.strategy as any).performanceFee ?? 0),
+    new BigNumberInt(data.strategy.performanceFee ?? 0),
     4,
   );
   const managementFee = toNormalizedAmount(
@@ -244,7 +271,7 @@ export async function calculateCurveForwardAPY(data: {
   let crvAPY = new Float().mul(data.baseAPY, yboost);
   crvAPY = new Float().add(crvAPY, data.rewardAPY);
 
-  const keepCRVRatio = new Float().add(new Float(1), new Float((keepCrv as any) ?? 0));
+  const keepCRVRatio = new Float().add(new Float(1), new Float(Number(keepCrv)));
   let grossAPY = new Float().mul(data.baseAPY, yboost);
   grossAPY = new Float().mul(grossAPY, keepCRVRatio);
   grossAPY = new Float().add(grossAPY, data.rewardAPY);
@@ -255,7 +282,7 @@ export async function calculateCurveForwardAPY(data: {
 
   return {
     type: 'crv',
-    netAPY: (netAPY as any).toFloat64()[0],
+    netAPY: netAPY.toFloat64()[0],
     boost: new Float().mul(yboost, debtRatio).toFloat64()[0],
     poolAPY: new Float().mul(data.poolAPY, debtRatio).toFloat64()[0],
     boostedAPR: new Float().mul(crvAPY, debtRatio).toFloat64()[0],
@@ -282,18 +309,17 @@ export async function calculateConvexForwardAPY(data: {
     baseAssetPrice,
     poolPrice,
     baseAPY,
-    rewardAPY,
     poolWeeklyAPY,
     chainId,
     lastDebtRatio,
   } = data;
   const [cvxBoost, keepCRV] = await Promise.all([
     getCurveBoost(chainId, gaugeAddress, strategy.address),
-    determineConvexKeepCRV(chainId, strategy as any),
+    determineConvexKeepCRV(chainId, strategy),
   ]);
   const debtRatio = toNormalizedAmount(new BigNumberInt(lastDebtRatio.toNumber()), 4);
   const performanceFee = toNormalizedAmount(
-    new BigNumberInt((strategy as any).performanceFee ?? 0),
+    new BigNumberInt(strategy.performanceFee ?? 0),
     4,
   );
   const managementFee = toNormalizedAmount(
@@ -303,8 +329,8 @@ export async function calculateConvexForwardAPY(data: {
   const oneMinusPerfFee = new Float().sub(new Float(1), performanceFee);
 
   const [{ crvAPR, cvxAPR, crvAPY, cvxAPY }, { totalRewardsAPY: rewardsAPY }] = await Promise.all([
-    getCVXPoolAPY(chainId, strategy.address as any, baseAssetPrice),
-    getConvexRewardAPY(chainId, strategy.address as any, baseAssetPrice, poolPrice),
+    getCVXPoolAPY(chainId, strategy.address, baseAssetPrice),
+    getConvexRewardAPY(chainId, strategy.address, baseAssetPrice, poolPrice),
   ]);
 
   const keepCRVRatio = new Float().sub(new Float(1), keepCRV);
@@ -326,7 +352,7 @@ export async function calculateConvexForwardAPY(data: {
     boostedAPR: new Float().mul(crvAPR, debtRatio).toFloat64()[0],
     baseAPR: new Float().mul(baseAPY, debtRatio).toFloat64()[0],
     cvxAPR: new Float().mul(cvxAPR, debtRatio).toFloat64()[0],
-    rewardsAPY: new Float().mul(rewardAPY, debtRatio).toFloat64()[0],
+    rewardsAPY: new Float().mul(rewardsAPY, debtRatio).toFloat64()[0],
     keepCRV: keepCRV.toFloat64()[0],
   };
 }
@@ -357,14 +383,20 @@ export async function calculatePrismaForwardAPR(data: any) {
   })) as any;
   if (receiver === zeroAddress) return null;
   const [base, [, prismaAPY]] = await Promise.all([
-    calculateConvexForwardAPY({ ...data, lastDebtRatio: new Float((data.strategy?.debtRatio || 0) as any) }),
+    calculateConvexForwardAPY({ ...data, lastDebtRatio: new Float(data.strategy?.debtRatio || 0) }),
     getPrismaAPY(chainId, receiver),
   ]);
   return {
-    ...base,
     type: 'prisma',
+    debtRatio: base.debtRatio,
     netAPY: base.netAPY + prismaAPY,
+    boost: base.boost,
+    poolAPY: base.poolAPY,
+    boostedAPR: base.boostedAPR,
+    baseAPR: base.baseAPR,
+    cvxAPR: base.cvxAPR,
     rewardsAPY: base.rewardsAPY + prismaAPY,
+    keepCRV: base.keepCRV,
   };
 }
 
@@ -487,10 +519,12 @@ export async function computeCurveLikeForwardAPY({
   allStrategiesForVault: GqlStrategy[];
   chainId: number;
 }): Promise<VaultAPY> {
-  const gauge = findGaugeForVault(vault.asset?.address ?? '', gauges);
+  // Match kong logic: use vault.defaults.asset directly
+  const vaultAsset = vault.asset?.address as `0x${string}`;
+  const gauge = findGaugeForVault(vaultAsset, gauges);
   if (!gauge) return { type: '', netAPY: 0 };
-  const pool = findPoolForVault(vault.asset?.address ?? '', pools);
-  const fraxPool = findFraxPoolForVault(vault.asset?.address ?? '', fraxPools);
+  const pool = findPoolForVault(vaultAsset, pools);
+  const fraxPool = findFraxPoolForVault(vaultAsset, fraxPools);
   const subgraphItem = findSubgraphItemForVault(gauge.swap, subgraphData);
 
   let typeOf = '',
