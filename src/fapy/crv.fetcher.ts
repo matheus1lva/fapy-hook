@@ -1,7 +1,5 @@
-import { CrvPool } from '../types/crv-pools';
-import { CrvSubgraphPool } from '../types/crv-subgraph';
-import { FraxPool } from '../types/frax-pools';
-import { CURVE_SUBGRAPHDATA_URI } from '../helpers/maps.helper';
+import { CURVE_SUBGRAPHDATA_URI } from './helpers/maps.helper';
+import { CrvPool, CrvSubgraphPool, FraxPool } from './types';
 
 export async function fetchGauges() {
   const gaugesResponse = await fetch(
