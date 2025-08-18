@@ -1,5 +1,5 @@
-import { KongClient } from '../clients/kongClient';
-import { GqlStrategy } from '../types/kongTypes';
+import { KongClient } from './clients/kongClient';
+import { GqlStrategy } from './types/kongTypes';
 
 export async function getVaultWithStrategies(chainId: number, vaultAddress: `0x${string}`) {
   const kong = new KongClient();

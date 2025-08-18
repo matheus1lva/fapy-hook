@@ -1,7 +1,7 @@
-import { getChainFromChainId } from '../utils/rpcs';
+import { getChainFromChainId } from './utils/rpcs';
 import { fetchFraxPools, fetchGauges, fetchPools, fetchSubgraph } from './crv.fetcher';
 import { isCurveStrategy, computeCurveLikeForwardAPY } from './crv-like.forward';
-import { GqlStrategy, GqlVault } from '../types/kongTypes';
+import { GqlStrategy, GqlVault } from './types/kongTypes';
 
 export interface VaultAPY {
   type?: string;

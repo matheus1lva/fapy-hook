@@ -4,7 +4,7 @@ export const YEARN_VOTER_ADDRESS: Record<number, `0x${string}`> = {
   250: '0x72a34AbafAB09b15E7191822A679f28E067C4a16',
   8453: '0xf9980603711Fe177176493A72367eB91751bbE7C',
   42161: '0x6346282DB8323A54E840c6C772B4399C9c655C0d',
-};
+}
 
 export const CONVEX_VOTER_ADDRESS: Record<number, `0x${string}`> = {
   1: '0x989AEb4d175e16225E39E87d0D97A3360524AD80',
@@ -13,7 +13,7 @@ export const CONVEX_VOTER_ADDRESS: Record<number, `0x${string}`> = {
   250: '0xE4830cd03aFB2719C1d565C8f18C4B9F8342cbd1',
   8453: '0xB1C6E08e93153071BbE4CeACeB143e2d4Ee776c8',
   42161: '0xAFf4d8D3F45FC19EFDFDCCE1114f297383D83cA2',
-};
+}
 
 export const CVX_BOOSTER_ADDRESS: Record<number, `0x${string}`> = {
   1: '0xF403C135812408BFbE8713b5A23a04b3D48AAE31',
@@ -22,7 +22,7 @@ export const CVX_BOOSTER_ADDRESS: Record<number, `0x${string}`> = {
   250: '0x9755C4F9DDc2C5cc735352598A6A1AAa20E068B6',
   8453: '0xB902EF2141E445e9AF667d8241732a8E942883ce',
   42161: '0xF403C135812408BFbE8713b5A23a04b3D48AAE31',
-};
+}
 
 export const CRV_TOKEN_ADDRESS: Record<number, `0x${string}`> = {
   1: '0xD533a949740bb3306d119CC777fa900bA034cd52',
@@ -31,7 +31,7 @@ export const CRV_TOKEN_ADDRESS: Record<number, `0x${string}`> = {
   250: '0x1E4F97b9f9F913c46F1632781732927B9019C68b',
   8453: '0x8Ee73c484A26e0A5df2Ee2a4960B789967dd0415',
   42161: '0x11cDb42B0EB46D95f990BeDD4695A6e3fA034978',
-};
+}
 
 export const CVX_TOKEN_ADDRESS: Record<number, `0x${string}`> = {
   1: '0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B',
@@ -40,8 +40,9 @@ export const CVX_TOKEN_ADDRESS: Record<number, `0x${string}`> = {
   250: '0x47536F17F4fF30e64A96a7555826b8f9e66ec468',
   8453: '0x18684099414E275a50EB4622DBe38e0a186fc221',
   42161: '0xaAFcFD42c9954C6689ef1901e03db742520829c5',
-};
+}
 
+// CURVE_SUBGRAPHDATA_URI contains the URI of the Curve gauges to use
 export const CURVE_SUBGRAPHDATA_URI: Record<number, string> = {
   1: 'https://api.curve.fi/api/getSubgraphData/ethereum',
   10: 'https://api.curve.fi/api/getSubgraphData/optimism',
@@ -51,11 +52,11 @@ export const CURVE_SUBGRAPHDATA_URI: Record<number, string> = {
   42161: 'https://api.curve.fi/api/getSubgraphData/arbitrum',
   146: 'https://api.curve.fi/api/getSubgraphData/polygon',
   100: 'https://api.curve.fi/api/getSubgraphData/xdai',
-};
+}
 
 export const V3_ORACLE_ADDRESS: Record<number, `0x${string}`> = {
   1: '0x0000000000000000000000000000000000000000',
   10: '0x0000000000000000000000000000000000000000',
   137: '0x0000000000000000000000000000000000000000',
   250: '0x0000000000000000000000000000000000000000',
-};
+}

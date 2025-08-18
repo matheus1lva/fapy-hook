@@ -1,10 +1,10 @@
 
 import { zeroAddress, createPublicClient, http } from 'viem';
-import { fetchErc20PriceUsd } from '../utils/prices';
-import { convexBaseStrategyAbi } from '../abis/convex-base-strategy.abi';
-import { crvRewardsAbi } from '../abis/crv-rewards.abi';
-import { cvxBoosterAbi } from '../abis/cvx-booster.abi';
-import { yprismaAbi } from '../abis/yprisma.abi';
+import { fetchErc20PriceUsd } from './utils/prices';
+import { convexBaseStrategyAbi } from './abis/convex-base-strategy.abi';
+import { crvRewardsAbi } from './abis/crv-rewards.abi';
+import { cvxBoosterAbi } from './abis/cvx-booster.abi';
+import { yprismaAbi } from './abis/yprisma.abi';
 import {
   convertFloatAPRToAPY,
   CRV_TOKEN_ADDRESS,
@@ -16,14 +16,14 @@ import {
   getCVXForCRV,
   getPrismaAPY,
   YEARN_VOTER_ADDRESS,
-} from '../helpers';
+} from './helpers';
 import { Gauge, CrvPool, CrvSubgraphPool, FraxPool, CVXPoolInfo } from './types';
-import { Float } from '../helpers/bignumber-float';
-import { BigNumberInt, toNormalizedAmount } from '../helpers/bignumber-int';
-import { GqlStrategy, GqlVault } from '../types/kongTypes';
+import { Float } from './helpers/bignumber-float';
+import { BigNumberInt, toNormalizedAmount } from './helpers/bignumber-int';
+import { GqlStrategy, GqlVault } from './types/kongTypes';
 import { VaultAPY } from './fapy';
-import { getChainFromChainId } from '../utils/rpcs';
-import { YEARN_VAULT_V022_ABI, YEARN_VAULT_V030_ABI, YEARN_VAULT_ABI_04 } from '../abis/0xAbis.abi';
+import { getChainFromChainId } from './utils/rpcs';
+import { YEARN_VAULT_V022_ABI, YEARN_VAULT_V030_ABI, YEARN_VAULT_ABI_04 } from './abis/0xAbis.abi';
 
 export function isCurveStrategy(vault: { name?: string | null }) {
   const vaultName = (vault?.name || '').toLowerCase();
@@ -311,7 +311,7 @@ export async function calculateConvexForwardAPY(data: {
   } = data;
   const [cvxBoost, keepCRV] = await Promise.all([
     getCurveBoost(chainId, gaugeAddress, strategy.address),
-    determineConvexKeepCRV(chainId, strategy),
+    determineConvexKeepCRV(chainId, strategy as any),
   ]);
   const debtRatio = toNormalizedAmount(new BigNumberInt(lastDebtRatio.toNumber()), 4);
   const performanceFee = toNormalizedAmount(
