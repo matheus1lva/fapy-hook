@@ -22,7 +22,7 @@ export async function computeFapy(hook: KongWebhook): Promise<Output[] | null> {
       OutputSchema.parse({
         chainId: hook.chainId,
         address: hook.address,
-        label: 'fapy',
+        label: 'crv-estimated-apr',
         component,
         value: res[component as keyof typeof res] ?? 0,
         blockNumber: hook.blockNumber,
