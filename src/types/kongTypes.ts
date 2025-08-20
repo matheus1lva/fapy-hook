@@ -26,6 +26,11 @@ export type GqlVault = {
   maxAvailableShares?: string | number | bigint | null;
   availableDepositLimit?: string | number | bigint | null;
   lockedProfitDegradation?: string | number | bigint | null;
+  debts?: {
+    debtRatio: number;
+    strategy: `0x${string}`;
+    performanceFee: number;
+  }[];
   // asset is an Erc20 object in schema; we primarily need its address
   asset?: {
     chainId: number;
@@ -49,6 +54,7 @@ export type GqlStrategy = {
   debtRatio?: number | null;
   performanceFee?: number | null;
   management?: `0x${string}` | null;
+  managementFee?: number | null;
   keeper?: `0x${string}` | null;
   want?: `0x${string}` | null;
   symbol?: string | null;
@@ -69,6 +75,7 @@ export type GqlStrategy = {
   maxAvailableShares?: string | number | bigint | null;
   availableDepositLimit?: string | number | bigint | null;
   lockedProfitDegradation?: string | number | bigint | null;
+  decimals?: number | null;
   asset?: {
     chainId: number;
     address: `0x${string}`;

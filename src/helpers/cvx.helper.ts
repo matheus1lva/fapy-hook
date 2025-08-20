@@ -163,7 +163,7 @@ export const getConvexRewardAPY = async (
         }
 
         // Fetch price with fallback if not available
-        const { priceUsd: rewardTokenPrice } = await fetchErc20PriceUsd(chainID, rewardToken, undefined, true)
+        const { priceUsd: rewardTokenPrice } = await fetchErc20PriceUsd(chainID, rewardToken)
         if (!rewardTokenPrice) {
           continue
         }

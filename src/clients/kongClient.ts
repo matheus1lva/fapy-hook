@@ -33,6 +33,11 @@ export class KongClient {
             name
             symbol
           }
+          debts {
+            debtRatio
+            strategy
+            performanceFee
+          }
           creditAvailable
           debtOutstanding
           debtRatio
@@ -75,67 +80,30 @@ export class KongClient {
    */
   async getStrategy(chainId: number, address: `0x${string}`): Promise<GqlStrategy | null> {
     const query = gql`
-query Vault($address: String, $chainId: Int) {
-  strategy(address: $address, chainId: $chainId) {
-    chainId
-    address
-    apiVersion
-    balanceOfWant
-    baseFeeOracle
-    creditThreshold
+query Strategy($chainId: Int, $address: String) {
+  strategy(chainId: $chainId, address: $address) {
     crv
-    curveVoter
-    delegatedAssets
-    doHealthCheck
-    emergencyExit
-    erc4626
-    estimatedTotalAssets
-    forceHarvestTriggerOnce
-    gauge
-    healthCheck
-    inceptTime
-    inceptBlock
-    isActive
-    isBaseFeeAcceptable
-    isOriginal
-    keeper
-    localKeepCRV
-    maxReportDelay
-    metadataURI
-    minReportDelay
-    name
-    proxy
-    rewards
-    stakedBalance
-    strategist
-    tradeFactory
-    vault
-    want
-    DOMAIN_SEPARATOR
-    FACTORY
-    MAX_FEE
-    MIN_FEE
-    decimals
-    fullProfitUnlockDate
-    isShutdown
-    lastReport
-    management
-    pendingManagement
-    performanceFee
-    performanceFeeRecipient
-    pricePerShare
-    profitMaxUnlockTime
-    profitUnlockingRate
+    apiVersion
+    address
     symbol
-    totalAssets
+    name
+    rewards
+    gauge
+    keeper
     totalDebt
-    totalIdle
-    totalSupply
     totalDebtUsd
-    v3
-    yearn
+    totalIdle
+    localKeepCRV
+    performanceFee
+    totalAssets
+    totalSupply
+    decimals
+    management
+    pricePerShare
   }
 }
+
+
     `;
     const res = await graphqlRequest<{ strategy: GqlStrategy | null }>({
       url: this.url,
@@ -235,11 +203,10 @@ query Vault($address: String, $chainId: Int) {
   async getPrices(params: {
     chainId?: number;
     address?: `0x${string}`;
-    timestamp?: string | number;
   }): Promise<GqlPrice[]> {
     const query = gql`
-      query Prices($chainId: Int, $address: String, $timestamp: BigInt) {
-        prices(chainId: $chainId, address: $address, timestamp: $timestamp) {
+      query Prices($chainId: Int, $address: String) {
+        prices(chainId: $chainId, address: $address) {
           chainId
           address
           priceUsd

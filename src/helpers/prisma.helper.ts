@@ -68,6 +68,6 @@ export async function getPrismaAPY(chainID: number, prismaReceiver: string): Pro
 }
 
 async function getTokenPrice(chainID: number, tokenAddress: string) {
-  const { priceUsd } = await fetchErc20PriceUsd(chainID, tokenAddress as `0x${string}`, undefined, true)
+  const { priceUsd } = await fetchErc20PriceUsd(chainID, tokenAddress as `0x${string}`)
   return priceUsd
 }
