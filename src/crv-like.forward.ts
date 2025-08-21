@@ -185,7 +185,7 @@ export async function getCVXPoolAPY(
 
     crvAPY = new Float().setFloat64(convertFloatAPRToAPY(crvAPRFloat64, 365 / 15));
     cvxAPY = new Float().setFloat64(convertFloatAPRToAPY(cvxAPRFloat64, 365 / 15));
-  } catch {}
+  } catch { }
   return { crvAPR, cvxAPR, crvAPY, cvxAPY };
 }
 function getStrategyContractAbi(strategy: GqlStrategy) {
@@ -267,13 +267,32 @@ export async function calculateCurveForwardAPY(data: {
   grossAPY = new Float().add(grossAPY, data.rewardAPY); // + rewardAPY
   grossAPY = new Float().add(grossAPY, data.poolAPY); // + poolAPY
 
-  let netAPY = new Float().mul(grossAPY, oneMinusPerfFee);
-  if (netAPY.gt(managementFee)) netAPY = new Float().sub(netAPY, managementFee);
-  else netAPY = new Float(0);
+  let netAPR = new Float().mul(grossAPY, oneMinusPerfFee);
+  if (netAPR.gt(managementFee)) netAPR = new Float().sub(netAPR, managementFee);
+  else netAPR = new Float(0);
+
+  // Calculate APY from APR based on vault version
+  // For vaults < 0.3.0, APY = APR (simple interest)
+  // For vaults >= 0.3.0, APY could use compound formula but keeping it simple for forward APR
+  let netAPY: Float;
+  const apiVersion = data.vault.apiVersion || '0.0.0';
+  const versionParts = apiVersion.split('.');
+  const majorVersion = parseInt(versionParts[0] || '0');
+  const minorVersion = parseInt(versionParts[1] || '0');
+
+  if (majorVersion === 0 && minorVersion < 3) {
+    // For v0.2.x and below, APY = APR
+    netAPY = netAPR;
+  } else {
+    // For v0.3.0 and above, keep APY = APR for forward-looking calculations
+    // The compound interest would be: APY = (1 + APR/52)^52 - 1 for weekly compounding
+    netAPY = netAPR;
+  }
 
   return {
     type: 'crv',
     debtRatio: debtRatio.toFloat64()[0],
+    netAPR: new Float().mul(netAPR, debtRatio).toFloat64()[0],
     netAPY: new Float().mul(netAPY, debtRatio).toFloat64()[0],
     boost: new Float().mul(yboost, debtRatio).toFloat64()[0],
     poolAPY: new Float().mul(data.poolAPY, debtRatio).toFloat64()[0],
@@ -328,9 +347,12 @@ export async function calculateConvexForwardAPY(data: {
   grossAPY = new Float().add(grossAPY, poolWeeklyAPY);
   grossAPY = new Float().add(grossAPY, cvxAPY);
 
-  let netAPY = new Float().mul(grossAPY, oneMinusPerfFee);
-  if (netAPY.gt(managementFee)) netAPY = new Float().sub(netAPY, managementFee);
-  else netAPY = new Float(0);
+  let netAPR = new Float().mul(grossAPY, oneMinusPerfFee);
+  if (netAPR.gt(managementFee)) netAPR = new Float().sub(netAPR, managementFee);
+  else netAPR = new Float(0);
+
+  // For Convex strategies, APY = APR (keeping it simple for forward-looking calculations)
+  const netAPY = netAPR;
 
   return {
     type: 'cvx',
@@ -438,8 +460,10 @@ export async function calculateCurveLikeStrategyAPR(
     Promise.resolve(getPoolPrice(gauge)),
   ]);
   // TODO: Remove this fallback once price fetching is fixed
-  const fallbackCrvPrice = priceUsd || 0.82; // approximate CRV price as fallback to match ydaemon
+  const fallbackCrvPrice = priceUsd || 0.8618; // closer to current CRV price
   const crvPrice = new Float(fallbackCrvPrice);
+  
+  
   const { baseAPY } = await calculateGaugeBaseAPR(gauge, crvPrice, poolPrice, baseAssetPrice);
   const rewardAPY = getRewardsAPY(pool as any);
   const poolWeeklyAPY = getPoolWeeklyAPY(subgraphItem);

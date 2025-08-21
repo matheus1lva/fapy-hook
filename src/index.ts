@@ -3,7 +3,6 @@ import { getVaultWithStrategies } from './service';
 import { computeChainAPY } from './fapy';
 
 export type VaultFapy = {
-  netAPR?: number;
   netAPY?: number;
   boost?: number;
   poolAPY?: number;
@@ -31,9 +30,9 @@ export async function computeVaultFapy(
 
     if (!fapy) return null;
 
+
     return {
-      netAPR: fapy.netAPR,
-      netAPY: fapy.netAPY ?? fapy.netAPR,
+      netAPY: fapy.netAPY,
       boost: fapy.boost,
       poolAPY: fapy.poolAPY,
       boostedAPR: fapy.boostedAPR,
