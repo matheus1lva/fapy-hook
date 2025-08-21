@@ -564,6 +564,7 @@ export async function computeCurveLikeForwardAPY({
   return {
     type: typeOf,
     netAPR: netAPY.toFloat64()[0],
+    netAPY: netAPY.toFloat64()[0],
     boost: boost.toFloat64()[0],
     poolAPY: poolAPY.toFloat64()[0],
     boostedAPR: boostedAPR.toFloat64()[0],

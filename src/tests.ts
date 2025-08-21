@@ -5,7 +5,7 @@ dotenv.config({ path: '../.env' })
 import { computeVaultFapy } from "./";
 
 async function main() {
-    const result = await computeVaultFapy(1, "0xf165a634296800812B8B0607a75DeDdcD4D3cC88")
+    const result = await computeVaultFapy(1, "0x790a60024bC3aea28385b60480f15a0771f26D09")
     console.log("result", result)
 }
 

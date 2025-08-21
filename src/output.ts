@@ -4,7 +4,7 @@ import { computeVaultFapy } from './';
 const COMPONENTS = [
   'netAPR',
   'netAPY',
-  'forwardBoost',
+  'boost',
   'poolAPY',
   'boostedAPR',
   'baseAPR',
