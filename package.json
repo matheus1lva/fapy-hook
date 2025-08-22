@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vercel dev",
-    "build": "tsc --noEmit",
+    "build": "tsc",
     "test": "ALLOW_INSECURE_TLS=1 vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
