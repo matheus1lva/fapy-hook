@@ -1,7 +1,8 @@
-import * as forward from '../src/fapy/crv-like.forward'
-import { determineCurveKeepCRV, getPoolWeeklyAPY, getRewardsAPY } from '../src/fapy/utils'
-import * as utils from '../src/fapy/utils'
-import { createPublicClient } from 'viem'
+import { describe, beforeEach, it, vi, expect } from 'vitest'
+import { Float } from './helpers/bignumber-float'
+import { determineCurveKeepCRV, getPoolWeeklyAPY, getRewardsAPY } from './crv-like.forward'
+import * as forwardAPY from './crv-like.forward'
+import * as helpers from './helpers'
 
 const mockReadContract = vi.fn()
 const mockMulticall = vi.fn()
@@ -34,8 +35,6 @@ vi.mock('../src/helpers', async (orig) => {
   }
 })
 
-import * as helpers from '../src/helpers'
-import { Float } from '../src/helpers/bignumber-float'
 
 describe('crv-like.forward core helpers', () => {
   // Hex helper
@@ -46,8 +45,8 @@ describe('crv-like.forward core helpers', () => {
   })
 
   it('determineCurveKeepCRV prefers strategy.localKeepCRV when present', async () => {
-    const strat: any = { localKeepCRV: new Float(0.05), address: hex('0xS1') }
-    const result = await utils.determineCurveKeepCRV(strat, 1)
+    const strat: any = { localKeepCRV: BigInt(500), address: hex('0xS1') }
+    const result = await determineCurveKeepCRV(strat, 1)
     const asNum = (result as any).toFloat64 ? (result as any).toFloat64()[0] : Number(result)
     expect(asNum).toBeCloseTo(0.05, 1e-9)
 
@@ -64,7 +63,7 @@ describe('crv-like.forward core helpers', () => {
       // keepCRVPercentage should not be called, but return if it is
       .mockResolvedValueOnce(BigInt(0))
 
-    const result = await forward.determineCurveKeepCRV(strat, 1)
+    const result = await determineCurveKeepCRV(strat, 1)
     const asNum = (result as any).toFloat64 ? (result as any).toFloat64()[0] : Number(result)
     expect(asNum).toBeCloseTo(0.1, 1e-9)
 
@@ -80,7 +79,7 @@ describe('crv-like.forward core helpers', () => {
 
   it('getRewardsAPY accumulates rewards', () => {
     const pool: any = { gaugeRewards: [{ APY: 1.5 }, { APY: 3.5 }] }
-    const res = getRewardsAPY(1, pool)
+    const res = getRewardsAPY(pool)
     const [num] = (res as any).toFloat64()
     expect(num).toBeCloseTo(0.05, 1e-9) // 1.5% + 3.5% = 5% -> 0.05
   })
@@ -89,6 +88,7 @@ describe('crv-like.forward core helpers', () => {
     // Minimal inputs
     const data = {
       gaugeAddress: hex('0xG'),
+      vault: { performanceFee: 0, managementFee: 0, apiVersion: '0.4.0' } as any,
       strategy: { address: hex('0xS'), performanceFee: 0, managementFee: 0, debtRatio: 10000, apiVersion: '0.4.0' } as any,
       baseAPY: new Float(0.05),
       rewardAPY: new Float(0.02),
@@ -99,10 +99,10 @@ describe('crv-like.forward core helpers', () => {
 
     // Mock imports
     vi.spyOn(helpers, 'getCurveBoost' as any).mockResolvedValueOnce(new Float(2.5))
-    vi.spyOn(utils, 'determineCurveKeepCRV').mockResolvedValueOnce(new Float(0))
+    vi.spyOn(forwardAPY, 'determineCurveKeepCRV').mockResolvedValueOnce(0)
     mockMulticall.mockResolvedValueOnce([{ result: BigInt(2e6) }])
 
-    const res = await forward.calculateCurveForwardAPY(data as any)
+    const res = await forwardAPY.calculateCurveForwardAPY(data as any)
 
     expect(res).toHaveProperty('type', 'crv')
     expect(res).toHaveProperty('netAPY')

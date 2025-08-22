@@ -32,7 +32,6 @@ export interface TVaultAPY {
 
 // Helper function to get block number by period (days ago)
 async function getBlockNumberByPeriod(chainId: number, daysAgo: number): Promise<bigint> {
-    console.log("chainId", chainId)
     const client = createPublicClient({
         chain: getChainFromChainId(chainId),
         transport: http(process.env[`RPC_CHAIN_URL_${chainId}`]!),

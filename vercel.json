@@ -1,15 +1,20 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "public",
   "functions": {
-    "api/index.ts": {
+    "api/webhook.ts": {
       "maxDuration": 60
+    },
+    "api/health.ts": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/api"
+      "source": "/webhook/fapy",
+      "destination": "/api/webhook"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health"
     }
   ]
 }

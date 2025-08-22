@@ -201,6 +201,10 @@ function getStrategyContractAbi(strategy: GqlStrategy) {
 }
 
 export async function determineCurveKeepCRV(strategy: GqlStrategy, chainId: number) {
+  if (strategy.localKeepCRV && strategy.localKeepCRV > 0) {
+    return toNormalizedAmount(new BigNumberInt(BigInt(strategy.localKeepCRV)), 4).toNumber();
+  }
+
   let keepPercentage = BigInt(0);
   let keepCRV = BigInt(0);
 
